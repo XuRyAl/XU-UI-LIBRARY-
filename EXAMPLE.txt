@@ -1,0 +1,12 @@
+local UILib = loadstring(game:HttpGet("https://raw.githubusercontent.com/XuRyAl/XU-UI-LIBRARY-/main/UI"))()
+local ui = UILib:CreateWindow{Title="Babu-Hub", Theme=Color3.fromRGB(40,44,58), Accent=Color3.fromRGB(79,145,255)}
+local t1 = ui:AddTab("Главная", "🏠")
+local s1 = ui:AddSection(t1, "Основные функции")
+ui:AddButton(s1, {Name="Кнопка", Callback=function() ui:Notify("Нажато!") end})
+ui:AddHiddenButton(s1, {Name="Скрытая", Callback=function() end})
+ui:AddToggle(s1, {Name="Тоггл", State=false, Callback=function(state) ui:Notify("Тоггл: "..tostring(state)) end})
+ui:AddCheckbox(s1, {Name="Чекбокс", State=true, Callback=function(state) print("Чекбокс:",state) end})
+ui:AddSlider(s1, {Name="Слайдер", Min=0, Max=100, Callback=function(val) ui:Notify("Слайдер: "..val) end})
+ui:AddTextBox(s1, {Name="Текст", Default="Введи...", Callback=function(text) print("Введено:",text) end})
+ui:AddDropdown(s1, {Name="Список", List={"A","B","C","D"}, Callback=function(item) ui:Notify("Выбран: "..item) end})
+ui:AddColorPicker(s1, {Name="Цвет", Default=Color3.new(1,1,1), Callback=function(col) print(col) end})
