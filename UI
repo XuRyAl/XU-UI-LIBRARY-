@@ -1,0 +1,570 @@
+--[[
+    Roblox Advanced UI Library
+    Автор: XuRyAl Copilot
+    Функции: Window, Tabs, Sections, Buttons, HiddenButtons, Toggles, Checkboxes, Sliders, Dropdowns,
+    TextBoxes, ColorPickers, Notifications, Modals, Animation, Custom Themes.
+    Красивый дизайн, плавные переходы, легко расширяется!
+    Использовать через: local UILib = require(path); local ui = UILib:CreateWindow({...})
+]]
+
+local UILib = {}
+UILib.__index = UILib
+
+local function c(class)
+    return Instance.new(class)
+end
+
+local function tween(obj, prop, time, style)
+    local ts = game:GetService("TweenService")
+    ts:Create(obj, TweenInfo.new(time or 0.25, style or Enum.EasingStyle.Sine), prop):Play()
+end
+
+local function dragify(Frame)
+    local dragging, dragInput, dragStart, startPos
+    Frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true; dragStart = input.Position; startPos = Frame.Position
+        end
+    end)
+    Frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    Frame.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+function UILib:CreateWindow(props)
+    local self = setmetatable({}, UILib)
+    props = props or {}
+    self.Title = props.Title or "UI Window"
+    self.Size = props.Size or UDim2.new(0, 540, 0, 400)
+    self.Theme = props.Theme or Color3.fromRGB(32,38,50)
+    self.Accent = props.Accent or Color3.fromRGB(79,145,255)
+    self.Text = props.Text or Color3.fromRGB(230,230,230)
+    self.Tabs = {}
+    self.ActiveTab = nil
+
+    local gui = c("ScreenGui")
+    gui.Name = "AdvancedUILib"
+    gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+    local MainFrame = c("Frame")
+    MainFrame.Parent = gui
+    MainFrame.Size = self.Size
+    MainFrame.Position = UDim2.new(0.5, -self.Size.X.Offset/2, 0.5, -self.Size.Y.Offset/2)
+    MainFrame.BackgroundColor3 = self.Theme
+    MainFrame.BorderSizePixel = 0
+    MainFrame.AnchorPoint = Vector2.new(0,0)
+    MainFrame.Active = true
+    MainFrame.ZIndex = 2
+    dragify(MainFrame)
+
+    local shadow = c("ImageLabel")
+    shadow.Parent = MainFrame
+    shadow.Size = UDim2.new(1,40,1,40)
+    shadow.Position = UDim2.new(0,-20,0,-20)
+    shadow.Image = "rbxassetid://5553946656"
+    shadow.BackgroundTransparency = 1
+    shadow.ImageTransparency = 0.4
+    shadow.ZIndex = 1
+
+    local TitleBar = c("Frame")
+    TitleBar.Parent = MainFrame
+    TitleBar.Size = UDim2.new(1,0,0,46)
+    TitleBar.BackgroundColor3 = self.Accent
+    TitleBar.BorderSizePixel = 0
+    TitleBar.ZIndex = 3
+
+    local TitleText = c("TextLabel")
+    TitleText.Parent = TitleBar
+    TitleText.Text = self.Title
+    TitleText.Size = UDim2.new(0.7,0,1,0)
+    TitleText.Position = UDim2.new(0.12,0,0,0)
+    TitleText.BackgroundTransparency = 1
+    TitleText.TextColor3 = Color3.new(1,1,1)
+    TitleText.Font = Enum.Font.GothamBold
+    TitleText.TextSize = 24
+    TitleText.ZIndex = 4
+
+    local CloseBtn = c("TextButton")
+    CloseBtn.Parent = TitleBar
+    CloseBtn.Size = UDim2.new(0,44,0,44)
+    CloseBtn.Position = UDim2.new(1,-46,0,2)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Text = "×"
+    CloseBtn.TextColor3 = Color3.new(1,1,1)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 26
+    CloseBtn.ZIndex = 4
+    CloseBtn.MouseButton1Click:Connect(function() tween(MainFrame, {BackgroundTransparency=1},0.3); wait(0.3); gui:Destroy() end)
+
+    local TabBar = c("Frame")
+    TabBar.Parent = MainFrame
+    TabBar.Size = UDim2.new(0,124,1,-46)
+    TabBar.Position = UDim2.new(0,0,0,46)
+    TabBar.BackgroundColor3 = self.Theme
+    TabBar.BorderSizePixel = 0
+    TabBar.ZIndex = 2
+
+    local TabList = c("UIListLayout")
+    TabList.Parent = TabBar
+    TabList.SortOrder = Enum.SortOrder.LayoutOrder
+    TabList.Padding = UDim.new(0,4)
+
+    self.MainFrame = MainFrame
+    self.TabBar = TabBar
+    self.TabList = TabList
+    self.ScreenGui = gui
+    self._theme = {Theme=self.Theme, Accent=self.Accent, Text=self.Text}
+    return self
+end
+
+function UILib:SetTheme(theme)
+    self.Theme = theme.Theme or self.Theme
+    self.Accent = theme.Accent or self.Accent
+    self.Text = theme.Text or self.Text
+    self.MainFrame.BackgroundColor3 = self.Theme
+    self.TabBar.BackgroundColor3 = self.Theme
+    self.MainFrame.TitleBar.BackgroundColor3 = self.Accent
+    self.MainFrame.TitleBar.TitleText.TextColor3 = self.Text
+    self._theme = theme
+end
+
+function UILib:AddTab(tabName, icon)
+    local tab = {}
+    tab.Name = tabName
+    tab.Icon = icon or ""
+    tab.Button = c("TextButton")
+    tab.Button.Parent = self.TabBar
+    tab.Button.Size = UDim2.new(1,0,0,40)
+    tab.Button.BackgroundColor3 = self.Theme
+    tab.Button.BorderSizePixel = 0
+    tab.Button.Text = (tab.Icon ~= "" and "  "..tab.Icon.."  " or "")..tabName
+    tab.Button.TextColor3 = self.Accent
+    tab.Button.Font = Enum.Font.GothamBold
+    tab.Button.TextSize = 18
+    tab.Button.ZIndex = 3
+    tab.Frame = c("Frame")
+    tab.Frame.Parent = self.MainFrame
+    tab.Frame.Size = UDim2.new(1,-124,1,-46)
+    tab.Frame.Position = UDim2.new(0,124,0,46)
+    tab.Frame.BackgroundTransparency = 1
+    tab.Frame.Visible = false
+    tab.Sections = {}
+    tab.Button.MouseButton1Click:Connect(function()
+        for _,t in pairs(self.Tabs) do t.Frame.Visible=false t.Button.TextColor3=self.Accent end
+        tab.Frame.Visible=true
+        tab.Button.TextColor3 = Color3.new(1,1,1)
+        self.ActiveTab = tab
+    end)
+    if not self.ActiveTab then tab.Frame.Visible=true; tab.Button.TextColor3=Color3.new(1,1,1); self.ActiveTab=tab end
+    table.insert(self.Tabs, tab)
+    return tab
+end
+
+function UILib:AddSection(tab, title)
+    local section = {}
+    section.Title = title or ""
+    section.Frame = c("Frame")
+    section.Frame.Parent = tab.Frame
+    section.Frame.Size = UDim2.new(1,0,0,0)
+    section.Frame.BackgroundTransparency = 1
+    local list = c("UIListLayout")
+    list.Parent = section.Frame
+    list.SortOrder = Enum.SortOrder.LayoutOrder
+    list.Padding = UDim.new(0,6)
+    if section.Title ~= "" then
+        local label = c("TextLabel")
+        label.Parent = section.Frame
+        label.Text = section.Title
+        label.Size = UDim2.new(1,0,0,30)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = self.Accent
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 16
+        label.ZIndex = 5
+    end
+    section.Objects = {}
+    table.insert(tab.Sections, section)
+    return section
+end
+
+function UILib:AddButton(section, props)
+    local btn = c("TextButton")
+    btn.Parent = section.Frame
+    btn.Size = UDim2.new(0.95,0,0,34)
+    btn.BackgroundColor3 = self.Accent
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 16
+    btn.Text = props.Name or "Button"
+    btn.ZIndex = 4
+    btn.MouseButton1Click:Connect(function()
+        if props.Callback then props.Callback() end
+        tween(btn,{BackgroundColor3=self.Theme},0.15); wait(0.13); tween(btn,{BackgroundColor3=self.Accent},0.18)
+    end)
+    section.Objects[btn.Text] = btn
+    return btn
+end
+
+function UILib:AddHiddenButton(section, props)
+    local btn = self:AddButton(section, props)
+    btn.Visible = false
+    return btn
+end
+
+function UILib:AddToggle(section, props)
+    local frame = c("Frame")
+    frame.Parent = section.Frame
+    frame.Size = UDim2.new(0.95,0,0,34)
+    frame.BackgroundTransparency = 1
+    local btn = c("TextButton")
+    btn.Parent = frame
+    btn.Size = UDim2.new(0.7,0,1,0)
+    btn.BackgroundColor3 = self.Theme
+    btn.TextColor3 = self.Accent
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 15
+    btn.Text = props.Name or "Toggle"
+    btn.Name = props.Name or "Toggle"
+    local chk = c("TextButton")
+    chk.Parent = frame
+    chk.Size = UDim2.new(0.3,0,1,0)
+    chk.Position = UDim2.new(0.7,0,0,0)
+    chk.BackgroundColor3 = self.Accent
+    chk.Text = props.State and "✔" or "✖"
+    chk.Font = Enum.Font.GothamBold
+    chk.TextSize = 18
+    chk.TextColor3 = Color3.new(1,1,1)
+    local state = props.State or false
+    local function toggle()
+        state = not state
+        chk.Text = state and "✔" or "✖"
+        tween(chk,{BackgroundColor3=state and Color3.fromRGB(40,180,100) or self.Accent},0.2)
+        if props.Callback then props.Callback(state) end
+    end
+    btn.MouseButton1Click:Connect(toggle)
+    chk.MouseButton1Click:Connect(toggle)
+    section.Objects[btn.Name] = frame
+    return frame
+end
+
+function UILib:AddCheckbox(section, props)
+    local frame = c("Frame")
+    frame.Parent = section.Frame
+    frame.Size = UDim2.new(0.95,0,0,34)
+    frame.BackgroundTransparency = 1
+    local box = c("TextButton")
+    box.Parent = frame
+    box.Size = UDim2.new(0,32,0,32)
+    box.Position = UDim2.new(0,0,0,0)
+    box.BackgroundColor3 = self.Accent
+    box.Text = props.State and "✔" or ""
+    box.Font = Enum.Font.GothamBold
+    box.TextSize = 18
+    box.TextColor3 = Color3.new(1,1,1)
+    local label = c("TextLabel")
+    label.Parent = frame
+    label.Size = UDim2.new(1,-40,1,0)
+    label.Position = UDim2.new(0,40,0,0)
+    label.BackgroundTransparency = 1
+    label.Text = props.Name or "Checkbox"
+    label.TextColor3 = self.Accent
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 15
+    local state = props.State or false
+    box.MouseButton1Click:Connect(function()
+        state = not state
+        box.Text = state and "✔" or ""
+        tween(box,{BackgroundColor3=state and Color3.fromRGB(40,180,100) or self.Accent},0.22)
+        if props.Callback then props.Callback(state) end
+    end)
+    section.Objects[label.Text] = frame
+    return frame
+end
+
+function UILib:AddSlider(section, props)
+    local frame = c("Frame")
+    frame.Parent = section.Frame
+    frame.Size = UDim2.new(0.95,0,0,40)
+    frame.BackgroundTransparency = 1
+    local label = c("TextLabel")
+    label.Parent = frame
+    label.Size = UDim2.new(0.3,0,1,0)
+    label.Text = props.Name or "Slider"
+    label.TextColor3 = self.Accent
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 15
+    label.BackgroundTransparency = 1
+    label.ZIndex = 4
+    local sliderbg = c("Frame")
+    sliderbg.Parent = frame
+    sliderbg.Size = UDim2.new(0.6,0,0.25,0)
+    sliderbg.Position = UDim2.new(0.3,0,0.37,0)
+    sliderbg.BackgroundColor3 = self.Theme
+    sliderbg.BorderSizePixel = 0
+    sliderbg.ZIndex = 4
+    local sliderbtn = c("Frame")
+    sliderbtn.Parent = sliderbg
+    sliderbtn.Size = UDim2.new(0,8,1,0)
+    sliderbtn.BackgroundColor3 = self.Accent
+    sliderbtn.BorderSizePixel = 0
+    sliderbtn.ZIndex = 5
+    local value = props.Min or 0
+    local min, max = props.Min or 0, props.Max or 100
+    local txt = c("TextLabel")
+    txt.Parent = frame
+    txt.Size = UDim2.new(0.1,0,1,0)
+    txt.Position = UDim2.new(0.9,0,0,0)
+    txt.Text = tostring(value)
+    txt.TextColor3 = self.Accent
+    txt.Font = Enum.Font.Gotham
+    txt.TextSize = 13
+    txt.BackgroundTransparency = 1
+    txt.ZIndex = 4
+    local dragging = false
+    sliderbg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+    end)
+    sliderbg.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    sliderbg.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local relpos = math.clamp((input.Position.X - sliderbg.AbsolutePosition.X)/sliderbg.AbsoluteSize.X,0,1)
+            value = math.floor((max-min)*relpos+min)
+            sliderbtn.Position = UDim2.new(relpos, -4, 0, 0)
+            txt.Text = tostring(value)
+            if props.Callback then props.Callback(value) end
+        end
+    end)
+    sliderbtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+    end)
+    sliderbtn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    section.Objects[label.Text] = frame
+    return frame
+end
+
+function UILib:AddTextBox(section, props)
+    local frame = c("Frame")
+    frame.Parent = section.Frame
+    frame.Size = UDim2.new(0.95,0,0,34)
+    frame.BackgroundTransparency = 1
+    local label = c("TextLabel")
+    label.Parent = frame
+    label.Size = UDim2.new(0.38,0,1,0)
+    label.Text = props.Name or "TextBox"
+    label.TextColor3 = self.Accent
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 15
+    label.BackgroundTransparency = 1
+    local box = c("TextBox")
+    box.Parent = frame
+    box.Size = UDim2.new(0.62,0,1,0)
+    box.Position = UDim2.new(0.38,0,0,0)
+    box.BackgroundColor3 = self.Theme
+    box.TextColor3 = self.Accent
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 13
+    box.Text = props.Default or ""
+    box.ZIndex = 4
+    box.ClearTextOnFocus = false
+    box.Focused:Connect(function()
+        tween(box,{BackgroundColor3=self.Accent,TextColor3=Color3.new(1,1,1)},0.18)
+    end)
+    box.FocusLost:Connect(function()
+        tween(box,{BackgroundColor3=self.Theme,TextColor3=self.Accent},0.18)
+        if props.Callback then props.Callback(box.Text) end
+    end)
+    section.Objects[label.Text] = frame
+    return frame
+end
+
+function UILib:AddDropdown(section, props)
+    local frame = c("Frame")
+    frame.Parent = section.Frame
+    frame.Size = UDim2.new(0.95,0,0,34)
+    frame.BackgroundTransparency = 1
+    local btn = c("TextButton")
+    btn.Parent = frame
+    btn.Size = UDim2.new(1,0,1,0)
+    btn.BackgroundColor3 = self.Theme
+    btn.TextColor3 = self.Accent
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 15
+    btn.Text = props.Name or "Dropdown"
+    btn.ZIndex = 4
+    local listFrame = c("Frame")
+    listFrame.Parent = frame
+    listFrame.Size = UDim2.new(1,0,0,0)
+    listFrame.Position = UDim2.new(0,0,1,0)
+    listFrame.BackgroundColor3 = self.Theme
+    listFrame.Visible = false
+    listFrame.ZIndex = 6
+    local uiList = c("UIListLayout")
+    uiList.Parent = listFrame
+    uiList.SortOrder = Enum.SortOrder.LayoutOrder
+    btn.MouseButton1Click:Connect(function()
+        listFrame.Visible = not listFrame.Visible
+        tween(listFrame, {Size=UDim2.new(1,0,0,#props.List*28)}, 0.23)
+    end)
+    for _,item in ipairs(props.List or {}) do
+        local itemBtn = c("TextButton")
+        itemBtn.Parent = listFrame
+        itemBtn.Size = UDim2.new(1,0,0,28)
+        itemBtn.BackgroundColor3 = self.Theme
+        itemBtn.TextColor3 = self.Accent
+        itemBtn.Font = Enum.Font.Gotham
+        itemBtn.TextSize = 13
+        itemBtn.Text = tostring(item)
+        itemBtn.ZIndex = 7
+        itemBtn.MouseButton1Click:Connect(function()
+            btn.Text = props.Name..": "..itemBtn.Text
+            tween(listFrame, {Size=UDim2.new(1,0,0,0)}, 0.21)
+            wait(0.2)
+            listFrame.Visible = false
+            if props.Callback then props.Callback(itemBtn.Text) end
+        end)
+    end
+    section.Objects[btn.Text] = frame
+    return frame
+end
+
+function UILib:AddColorPicker(section, props)
+    local frame = c("Frame")
+    frame.Parent = section.Frame
+    frame.Size = UDim2.new(0.95,0,0,34)
+    frame.BackgroundTransparency = 1
+    local label = c("TextLabel")
+    label.Parent = frame
+    label.Size = UDim2.new(0.45,0,1,0)
+    label.Text = props.Name or "Color"
+    label.TextColor3 = self.Accent
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 15
+    label.BackgroundTransparency = 1
+    local colorBtn = c("TextButton")
+    colorBtn.Parent = frame
+    colorBtn.Size = UDim2.new(0,32,0,32)
+    colorBtn.Position = UDim2.new(0.46,0,0,1)
+    colorBtn.BackgroundColor3 = props.Default or Color3.new(1,1,1)
+    colorBtn.Text = ""
+    colorBtn.ZIndex = 5
+    colorBtn.MouseButton1Click:Connect(function()
+        self:ShowModal("Выберите цвет", "Введите RGB через запятую", function(res)
+            local r,g,b = res:match("(%d+),(%d+),(%d+)")
+            if r and g and b then
+                local col = Color3.fromRGB(tonumber(r),tonumber(g),tonumber(b))
+                tween(colorBtn,{BackgroundColor3=col},0.2)
+                if props.Callback then props.Callback(col) end
+            end
+        end)
+    end)
+    section.Objects[label.Text] = frame
+    return frame
+end
+
+function UILib:ShowModal(title, prompt, cb)
+    local modal = c("Frame")
+    modal.Parent = self.ScreenGui
+    modal.Size = UDim2.new(0,320,0,140)
+    modal.Position = UDim2.new(0.5,-160,0.5,-70)
+    modal.BackgroundColor3 = self.Accent
+    modal.BorderSizePixel = 0
+    modal.ZIndex = 50
+    local t = c("TextLabel")
+    t.Parent = modal
+    t.Size = UDim2.new(1,0,0,32)
+    t.Text = title
+    t.BackgroundTransparency = 1
+    t.TextColor3 = Color3.new(1,1,1)
+    t.Font = Enum.Font.GothamBold
+    t.TextSize = 18
+    t.Position = UDim2.new(0,0,0,0)
+    local promptL = c("TextLabel")
+    promptL.Parent = modal
+    promptL.Size = UDim2.new(1,-20,0,18)
+    promptL.Position = UDim2.new(0,10,0,40)
+    promptL.Text = prompt
+    promptL.BackgroundTransparency = 1
+    promptL.TextColor3 = Color3.new(1,1,1)
+    promptL.Font = Enum.Font.Gotham
+    promptL.TextSize = 14
+    local box = c("TextBox")
+    box.Parent = modal
+    box.Size = UDim2.new(1,-40,0,26)
+    box.Position = UDim2.new(0,20,0,70)
+    box.BackgroundColor3 = self.Theme
+    box.TextColor3 = self.Accent
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 15
+    box.Text = ""
+    box.ZIndex = 51
+    local okBtn = c("TextButton")
+    okBtn.Parent = modal
+    okBtn.Size = UDim2.new(0.4,0,0,28)
+    okBtn.Position = UDim2.new(0.07,0,0,110)
+    okBtn.BackgroundColor3 = self.Theme
+    okBtn.TextColor3 = self.Accent
+    okBtn.Font = Enum.Font.GothamBold
+    okBtn.TextSize = 15
+    okBtn.Text = "OK"
+    okBtn.MouseButton1Click:Connect(function()
+        if cb then cb(box.Text) end
+        modal:Destroy()
+    end)
+    local cancelBtn = c("TextButton")
+    cancelBtn.Parent = modal
+    cancelBtn.Size = UDim2.new(0.4,0,0,28)
+    cancelBtn.Position = UDim2.new(0.53,0,0,110)
+    cancelBtn.BackgroundColor3 = self.Theme
+    cancelBtn.TextColor3 = self.Accent
+    cancelBtn.Font = Enum.Font.GothamBold
+    cancelBtn.TextSize = 15
+    cancelBtn.Text = "Cancel"
+    cancelBtn.MouseButton1Click:Connect(function()
+        modal:Destroy()
+    end)
+end
+
+function UILib:Notify(text, duration)
+    duration = duration or 2
+    local notif = c("TextLabel")
+    notif.Parent = self.MainFrame
+    notif.Size = UDim2.new(0.7,0,0,36)
+    notif.Position = UDim2.new(0.15,0,0,4)
+    notif.BackgroundColor3 = self.Accent
+    notif.Text = text
+    notif.Font = Enum.Font.GothamBold
+    notif.TextSize = 17
+    notif.TextColor3 = Color3.new(1,1,1)
+    notif.BackgroundTransparency = 0.08
+    notif.ZIndex = 99
+    notif.AnchorPoint = Vector2.new(0,0)
+    tween(notif, {BackgroundTransparency=0.6, TextTransparency=0.45}, duration)
+    task.spawn(function()
+        wait(duration)
+        notif:Destroy()
+    end)
+end
+
+function UILib:Destroy()
+    self.ScreenGui:Destroy()
+end
+
+function UILib:Hide()
+    self.ScreenGui.Enabled = false
+end
+
+function UILib:Show()
+    self.ScreenGui.Enabled = true
+end
+
+return UILib
