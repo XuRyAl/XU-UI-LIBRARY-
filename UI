@@ -1,33 +1,37 @@
 --[[
-    Roblox Advanced UI Library
-    Автор: XuRyAl Copilot
-    Функции: Window, Tabs, Sections, Buttons, HiddenButtons, Toggles, Checkboxes, Sliders, Dropdowns,
-    TextBoxes, ColorPickers, Notifications, Modals, Animation, Custom Themes.
-    Красивый дизайн, плавные переходы, легко расширяется!
-    Использовать через: local UILib = require(path); local ui = UILib:CreateWindow({...})
+    RayfieldLikeUILibrary.lua
+    Roblox UI Library inspired by Rayfield
+    Features: Drag window, Tabs, Sections, Buttons, Toggles, Sliders, Dropdowns, TextBoxes, ColorPickers, Notifications, Theme Customization, Rounded Corners, Animation
+    Author: Copilot for XuRyAl
 ]]
 
 local UILib = {}
 UILib.__index = UILib
 
+-- Helper: create instance
 local function c(class)
     return Instance.new(class)
 end
 
+-- Helper: tween
 local function tween(obj, prop, time, style)
-    local ts = game:GetService("TweenService")
-    ts:Create(obj, TweenInfo.new(time or 0.25, style or Enum.EasingStyle.Sine), prop):Play()
+    game:GetService("TweenService"):Create(obj, TweenInfo.new(time or 0.25, style or Enum.EasingStyle.Sine), prop):Play()
 end
 
-local function dragify(Frame)
+-- Dragify
+function UILib:dragify(Frame)
     local dragging, dragInput, dragStart, startPos
     Frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true; dragStart = input.Position; startPos = Frame.Position
+            dragging = true
+            dragStart = input.Position
+            startPos = Frame.Position
         end
     end)
     Frame.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
     end)
     Frame.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -37,20 +41,22 @@ local function dragify(Frame)
     end)
 end
 
+-- Create Window
 function UILib:CreateWindow(props)
     local self = setmetatable({}, UILib)
     props = props or {}
-    self.Title = props.Title or "UI Window"
-    self.Size = props.Size or UDim2.new(0, 540, 0, 400)
-    self.Theme = props.Theme or Color3.fromRGB(32,38,50)
-    self.Accent = props.Accent or Color3.fromRGB(79,145,255)
+    self.Title = props.Title or "Rayfield-Like UI"
+    self.Size = props.Size or UDim2.new(0, 510, 0, 420)
+    self.Theme = props.Theme or Color3.fromRGB(37, 41, 51)
+    self.Accent = props.Accent or Color3.fromRGB(85, 170, 255)
     self.Text = props.Text or Color3.fromRGB(230,230,230)
     self.Tabs = {}
     self.ActiveTab = nil
 
     local gui = c("ScreenGui")
-    gui.Name = "AdvancedUILib"
+    gui.Name = "RayfieldUILib"
     gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    gui.ResetOnSpawn = false
 
     local MainFrame = c("Frame")
     MainFrame.Parent = gui
@@ -58,19 +64,13 @@ function UILib:CreateWindow(props)
     MainFrame.Position = UDim2.new(0.5, -self.Size.X.Offset/2, 0.5, -self.Size.Y.Offset/2)
     MainFrame.BackgroundColor3 = self.Theme
     MainFrame.BorderSizePixel = 0
-    MainFrame.AnchorPoint = Vector2.new(0,0)
     MainFrame.Active = true
     MainFrame.ZIndex = 2
-    dragify(MainFrame)
-
-    local shadow = c("ImageLabel")
-    shadow.Parent = MainFrame
-    shadow.Size = UDim2.new(1,40,1,40)
-    shadow.Position = UDim2.new(0,-20,0,-20)
-    shadow.Image = "rbxassetid://5553946656"
-    shadow.BackgroundTransparency = 1
-    shadow.ImageTransparency = 0.4
-    shadow.ZIndex = 1
+    MainFrame.AnchorPoint = Vector2.new(0, 0)
+    self:dragify(MainFrame)
+    local mainCorner = c("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 14)
+    mainCorner.Parent = MainFrame
 
     local TitleBar = c("Frame")
     TitleBar.Parent = MainFrame
@@ -78,12 +78,15 @@ function UILib:CreateWindow(props)
     TitleBar.BackgroundColor3 = self.Accent
     TitleBar.BorderSizePixel = 0
     TitleBar.ZIndex = 3
+    local titleCorner = c("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 14)
+    titleCorner.Parent = TitleBar
 
     local TitleText = c("TextLabel")
     TitleText.Parent = TitleBar
     TitleText.Text = self.Title
     TitleText.Size = UDim2.new(0.7,0,1,0)
-    TitleText.Position = UDim2.new(0.12,0,0,0)
+    TitleText.Position = UDim2.new(0.11,0,0,0)
     TitleText.BackgroundTransparency = 1
     TitleText.TextColor3 = Color3.new(1,1,1)
     TitleText.Font = Enum.Font.GothamBold
@@ -92,8 +95,8 @@ function UILib:CreateWindow(props)
 
     local CloseBtn = c("TextButton")
     CloseBtn.Parent = TitleBar
-    CloseBtn.Size = UDim2.new(0,44,0,44)
-    CloseBtn.Position = UDim2.new(1,-46,0,2)
+    CloseBtn.Size = UDim2.new(0,42,0,40)
+    CloseBtn.Position = UDim2.new(1,-48,0,3)
     CloseBtn.BackgroundTransparency = 1
     CloseBtn.Text = "×"
     CloseBtn.TextColor3 = Color3.new(1,1,1)
@@ -104,12 +107,14 @@ function UILib:CreateWindow(props)
 
     local TabBar = c("Frame")
     TabBar.Parent = MainFrame
-    TabBar.Size = UDim2.new(0,124,1,-46)
+    TabBar.Size = UDim2.new(0,126,1,-46)
     TabBar.Position = UDim2.new(0,0,0,46)
     TabBar.BackgroundColor3 = self.Theme
     TabBar.BorderSizePixel = 0
     TabBar.ZIndex = 2
-
+    local tabCorner = c("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 14)
+    tabCorner.Parent = TabBar
     local TabList = c("UIListLayout")
     TabList.Parent = TabBar
     TabList.SortOrder = Enum.SortOrder.LayoutOrder
@@ -148,10 +153,13 @@ function UILib:AddTab(tabName, icon)
     tab.Button.Font = Enum.Font.GothamBold
     tab.Button.TextSize = 18
     tab.Button.ZIndex = 3
+    local tabBtnCorner = c("UICorner")
+    tabBtnCorner.CornerRadius = UDim.new(0, 12)
+    tabBtnCorner.Parent = tab.Button
     tab.Frame = c("Frame")
     tab.Frame.Parent = self.MainFrame
-    tab.Frame.Size = UDim2.new(1,-124,1,-46)
-    tab.Frame.Position = UDim2.new(0,124,0,46)
+    tab.Frame.Size = UDim2.new(1,-126,1,-46)
+    tab.Frame.Position = UDim2.new(0,126,0,46)
     tab.Frame.BackgroundTransparency = 1
     tab.Frame.Visible = false
     tab.Sections = {}
@@ -173,6 +181,9 @@ function UILib:AddSection(tab, title)
     section.Frame.Parent = tab.Frame
     section.Frame.Size = UDim2.new(1,0,0,0)
     section.Frame.BackgroundTransparency = 1
+    local secCorner = c("UICorner")
+    secCorner.CornerRadius = UDim.new(0, 12)
+    secCorner.Parent = section.Frame
     local list = c("UIListLayout")
     list.Parent = section.Frame
     list.SortOrder = Enum.SortOrder.LayoutOrder
@@ -203,6 +214,9 @@ function UILib:AddButton(section, props)
     btn.TextSize = 16
     btn.Text = props.Name or "Button"
     btn.ZIndex = 4
+    local btnCorner = c("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 10)
+    btnCorner.Parent = btn
     btn.MouseButton1Click:Connect(function()
         if props.Callback then props.Callback() end
         tween(btn,{BackgroundColor3=self.Theme},0.15); wait(0.13); tween(btn,{BackgroundColor3=self.Accent},0.18)
@@ -211,17 +225,14 @@ function UILib:AddButton(section, props)
     return btn
 end
 
-function UILib:AddHiddenButton(section, props)
-    local btn = self:AddButton(section, props)
-    btn.Visible = false
-    return btn
-end
-
 function UILib:AddToggle(section, props)
     local frame = c("Frame")
     frame.Parent = section.Frame
     frame.Size = UDim2.new(0.95,0,0,34)
     frame.BackgroundTransparency = 1
+    local frameCorner = c("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 10)
+    frameCorner.Parent = frame
     local btn = c("TextButton")
     btn.Parent = frame
     btn.Size = UDim2.new(0.7,0,1,0)
@@ -240,6 +251,9 @@ function UILib:AddToggle(section, props)
     chk.Font = Enum.Font.GothamBold
     chk.TextSize = 18
     chk.TextColor3 = Color3.new(1,1,1)
+    local chkCorner = c("UICorner")
+    chkCorner.CornerRadius = UDim.new(0, 10)
+    chkCorner.Parent = chk
     local state = props.State or false
     local function toggle()
         state = not state
@@ -253,45 +267,14 @@ function UILib:AddToggle(section, props)
     return frame
 end
 
-function UILib:AddCheckbox(section, props)
-    local frame = c("Frame")
-    frame.Parent = section.Frame
-    frame.Size = UDim2.new(0.95,0,0,34)
-    frame.BackgroundTransparency = 1
-    local box = c("TextButton")
-    box.Parent = frame
-    box.Size = UDim2.new(0,32,0,32)
-    box.Position = UDim2.new(0,0,0,0)
-    box.BackgroundColor3 = self.Accent
-    box.Text = props.State and "✔" or ""
-    box.Font = Enum.Font.GothamBold
-    box.TextSize = 18
-    box.TextColor3 = Color3.new(1,1,1)
-    local label = c("TextLabel")
-    label.Parent = frame
-    label.Size = UDim2.new(1,-40,1,0)
-    label.Position = UDim2.new(0,40,0,0)
-    label.BackgroundTransparency = 1
-    label.Text = props.Name or "Checkbox"
-    label.TextColor3 = self.Accent
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 15
-    local state = props.State or false
-    box.MouseButton1Click:Connect(function()
-        state = not state
-        box.Text = state and "✔" or ""
-        tween(box,{BackgroundColor3=state and Color3.fromRGB(40,180,100) or self.Accent},0.22)
-        if props.Callback then props.Callback(state) end
-    end)
-    section.Objects[label.Text] = frame
-    return frame
-end
-
 function UILib:AddSlider(section, props)
     local frame = c("Frame")
     frame.Parent = section.Frame
     frame.Size = UDim2.new(0.95,0,0,40)
     frame.BackgroundTransparency = 1
+    local frameCorner = c("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 10)
+    frameCorner.Parent = frame
     local label = c("TextLabel")
     label.Parent = frame
     label.Size = UDim2.new(0.3,0,1,0)
@@ -308,12 +291,18 @@ function UILib:AddSlider(section, props)
     sliderbg.BackgroundColor3 = self.Theme
     sliderbg.BorderSizePixel = 0
     sliderbg.ZIndex = 4
+    local bgCorner = c("UICorner")
+    bgCorner.CornerRadius = UDim.new(0, 10)
+    bgCorner.Parent = sliderbg
     local sliderbtn = c("Frame")
     sliderbtn.Parent = sliderbg
     sliderbtn.Size = UDim2.new(0,8,1,0)
     sliderbtn.BackgroundColor3 = self.Accent
     sliderbtn.BorderSizePixel = 0
     sliderbtn.ZIndex = 5
+    local btnCorner = c("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = sliderbtn
     local value = props.Min or 0
     local min, max = props.Min or 0, props.Max or 100
     local txt = c("TextLabel")
@@ -327,62 +316,46 @@ function UILib:AddSlider(section, props)
     txt.BackgroundTransparency = 1
     txt.ZIndex = 4
     local dragging = false
+
+    local function updateSlider(mouseX)
+        local relpos = math.clamp((mouseX - sliderbg.AbsolutePosition.X)/sliderbg.AbsoluteSize.X,0,1)
+        value = math.floor((max-min)*relpos+min)
+        sliderbtn.Position = UDim2.new(relpos, -4, 0, 0)
+        txt.Text = tostring(value)
+        if props.Callback then props.Callback(value) end
+    end
+
     sliderbg.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
-    end)
-    sliderbg.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-    sliderbg.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local relpos = math.clamp((input.Position.X - sliderbg.AbsolutePosition.X)/sliderbg.AbsoluteSize.X,0,1)
-            value = math.floor((max-min)*relpos+min)
-            sliderbtn.Position = UDim2.new(relpos, -4, 0, 0)
-            txt.Text = tostring(value)
-            if props.Callback then props.Callback(value) end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            updateSlider(input.Position.X)
         end
     end)
-    sliderbtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
-    end)
-    sliderbtn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-    section.Objects[label.Text] = frame
-    return frame
-end
 
-function UILib:AddTextBox(section, props)
-    local frame = c("Frame")
-    frame.Parent = section.Frame
-    frame.Size = UDim2.new(0.95,0,0,34)
-    frame.BackgroundTransparency = 1
-    local label = c("TextLabel")
-    label.Parent = frame
-    label.Size = UDim2.new(0.38,0,1,0)
-    label.Text = props.Name or "TextBox"
-    label.TextColor3 = self.Accent
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 15
-    label.BackgroundTransparency = 1
-    local box = c("TextBox")
-    box.Parent = frame
-    box.Size = UDim2.new(0.62,0,1,0)
-    box.Position = UDim2.new(0.38,0,0,0)
-    box.BackgroundColor3 = self.Theme
-    box.TextColor3 = self.Accent
-    box.Font = Enum.Font.Gotham
-    box.TextSize = 13
-    box.Text = props.Default or ""
-    box.ZIndex = 4
-    box.ClearTextOnFocus = false
-    box.Focused:Connect(function()
-        tween(box,{BackgroundColor3=self.Accent,TextColor3=Color3.new(1,1,1)},0.18)
+    sliderbg.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
     end)
-    box.FocusLost:Connect(function()
-        tween(box,{BackgroundColor3=self.Theme,TextColor3=self.Accent},0.18)
-        if props.Callback then props.Callback(box.Text) end
+
+    sliderbg.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateSlider(input.Position.X)
+        end
     end)
+
+    sliderbtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+
+    sliderbtn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
     section.Objects[label.Text] = frame
     return frame
 end
@@ -392,6 +365,9 @@ function UILib:AddDropdown(section, props)
     frame.Parent = section.Frame
     frame.Size = UDim2.new(0.95,0,0,34)
     frame.BackgroundTransparency = 1
+    local frameCorner = c("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 10)
+    frameCorner.Parent = frame
     local btn = c("TextButton")
     btn.Parent = frame
     btn.Size = UDim2.new(1,0,1,0)
@@ -401,6 +377,9 @@ function UILib:AddDropdown(section, props)
     btn.TextSize = 15
     btn.Text = props.Name or "Dropdown"
     btn.ZIndex = 4
+    local btnCorner = c("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = btn
     local listFrame = c("Frame")
     listFrame.Parent = frame
     listFrame.Size = UDim2.new(1,0,0,0)
@@ -425,6 +404,9 @@ function UILib:AddDropdown(section, props)
         itemBtn.TextSize = 13
         itemBtn.Text = tostring(item)
         itemBtn.ZIndex = 7
+        local itemCorner = c("UICorner")
+        itemCorner.CornerRadius = UDim.new(0, 8)
+        itemCorner.Parent = itemBtn
         itemBtn.MouseButton1Click:Connect(function()
             btn.Text = props.Name..": "..itemBtn.Text
             tween(listFrame, {Size=UDim2.new(1,0,0,0)}, 0.21)
@@ -437,11 +419,55 @@ function UILib:AddDropdown(section, props)
     return frame
 end
 
+function UILib:AddTextBox(section, props)
+    local frame = c("Frame")
+    frame.Parent = section.Frame
+    frame.Size = UDim2.new(0.95,0,0,34)
+    frame.BackgroundTransparency = 1
+    local frameCorner = c("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 10)
+    frameCorner.Parent = frame
+    local label = c("TextLabel")
+    label.Parent = frame
+    label.Size = UDim2.new(0.38,0,1,0)
+    label.Text = props.Name or "TextBox"
+    label.TextColor3 = self.Accent
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 15
+    label.BackgroundTransparency = 1
+    local box = c("TextBox")
+    box.Parent = frame
+    box.Size = UDim2.new(0.62,0,1,0)
+    box.Position = UDim2.new(0.38,0,0,0)
+    box.BackgroundColor3 = self.Theme
+    box.TextColor3 = self.Accent
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 13
+    box.Text = props.Default or ""
+    box.ZIndex = 4
+    box.ClearTextOnFocus = false
+    local boxCorner = c("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 8)
+    boxCorner.Parent = box
+    box.Focused:Connect(function()
+        tween(box,{BackgroundColor3=self.Accent,TextColor3=Color3.new(1,1,1)},0.18)
+    end)
+    box.FocusLost:Connect(function()
+        tween(box,{BackgroundColor3=self.Theme,TextColor3=self.Accent},0.18)
+        if props.Callback then props.Callback(box.Text) end
+    end)
+    section.Objects[label.Text] = frame
+    return frame
+end
+
 function UILib:AddColorPicker(section, props)
     local frame = c("Frame")
     frame.Parent = section.Frame
     frame.Size = UDim2.new(0.95,0,0,34)
     frame.BackgroundTransparency = 1
+    local frameCorner = c("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 10)
+    frameCorner.Parent = frame
     local label = c("TextLabel")
     label.Parent = frame
     label.Size = UDim2.new(0.45,0,1,0)
@@ -457,6 +483,9 @@ function UILib:AddColorPicker(section, props)
     colorBtn.BackgroundColor3 = props.Default or Color3.new(1,1,1)
     colorBtn.Text = ""
     colorBtn.ZIndex = 5
+    local colorCorner = c("UICorner")
+    colorCorner.CornerRadius = UDim.new(0, 8)
+    colorCorner.Parent = colorBtn
     colorBtn.MouseButton1Click:Connect(function()
         self:ShowModal("Выберите цвет", "Введите RGB через запятую", function(res)
             local r,g,b = res:match("(%d+),(%d+),(%d+)")
@@ -479,6 +508,9 @@ function UILib:ShowModal(title, prompt, cb)
     modal.BackgroundColor3 = self.Accent
     modal.BorderSizePixel = 0
     modal.ZIndex = 50
+    local modalCorner = c("UICorner")
+    modalCorner.CornerRadius = UDim.new(0, 14)
+    modalCorner.Parent = modal
     local t = c("TextLabel")
     t.Parent = modal
     t.Size = UDim2.new(1,0,0,32)
@@ -507,6 +539,9 @@ function UILib:ShowModal(title, prompt, cb)
     box.TextSize = 15
     box.Text = ""
     box.ZIndex = 51
+    local boxCorner = c("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 8)
+    boxCorner.Parent = box
     local okBtn = c("TextButton")
     okBtn.Parent = modal
     okBtn.Size = UDim2.new(0.4,0,0,28)
@@ -516,6 +551,9 @@ function UILib:ShowModal(title, prompt, cb)
     okBtn.Font = Enum.Font.GothamBold
     okBtn.TextSize = 15
     okBtn.Text = "OK"
+    local okCorner = c("UICorner")
+    okCorner.CornerRadius = UDim.new(0, 8)
+    okCorner.Parent = okBtn
     okBtn.MouseButton1Click:Connect(function()
         if cb then cb(box.Text) end
         modal:Destroy()
@@ -529,6 +567,9 @@ function UILib:ShowModal(title, prompt, cb)
     cancelBtn.Font = Enum.Font.GothamBold
     cancelBtn.TextSize = 15
     cancelBtn.Text = "Cancel"
+    local cancelCorner = c("UICorner")
+    cancelCorner.CornerRadius = UDim.new(0, 8)
+    cancelCorner.Parent = cancelBtn
     cancelBtn.MouseButton1Click:Connect(function()
         modal:Destroy()
     end)
@@ -548,6 +589,9 @@ function UILib:Notify(text, duration)
     notif.BackgroundTransparency = 0.08
     notif.ZIndex = 99
     notif.AnchorPoint = Vector2.new(0,0)
+    local corner = c("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = notif
     tween(notif, {BackgroundTransparency=0.6, TextTransparency=0.45}, duration)
     task.spawn(function()
         wait(duration)
